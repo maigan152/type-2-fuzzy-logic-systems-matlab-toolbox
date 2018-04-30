@@ -124,14 +124,18 @@ for inputSeq = 1:inputN
             if rules(n,i) > 0
                 UpperParams = t2fis.input(i).mf(1,rules(n,i)).params;
                 LowerParams = t2fis.input(i).mf(2,rules(n,i)).params;
-                MemberUpper = UpperParams(end)*eval(['helper.' t2fis.input(i).mf(1,rules(n,i)).type '(x(i),UpperParams(1:end-1))']);
-                MemberLower = LowerParams(end)*eval(['helper.' t2fis.input(i).mf(2,rules(n,i)).type '(x(i),LowerParams(1:end-1))']);
+                MemberUpper = UpperParams(end) * helper.evalMfTypeHelper(t2fis.input(i).mf(1,rules(n,i)).type,x(i),UpperParams(1:end-1));
+                MemberLower = LowerParams(end) * helper.evalMfTypeHelper(t2fis.input(i).mf(2,rules(n,i)).type,x(i),LowerParams(1:end-1));                
+                %MemberUpper = UpperParams(end)*eval(['helper.' t2fis.input(i).mf(1,rules(n,i)).type '(x(i),UpperParams(1:end-1))']);
+                %MemberLower = LowerParams(end)*eval(['helper.' t2fis.input(i).mf(2,rules(n,i)).type '(x(i),LowerParams(1:end-1))']);
                 f1U=f1U*MemberUpper;
                 f1L=f1L*MemberLower;
             else
                 UpperParams = t2fis.input(i).mf(1,abs(rules(n,i))).params;
                 LowerParams = t2fis.input(i).mf(2,abs(rules(n,i))).params;
-                MemberUpper = UpperParams(end)*eval(['helper.' t2fis.input(i).mf(1,abs(rules(n,i))).type '(x(i),UpperParams(1:end-1))']);
+                %MemberUpper = UpperParams(end)*eval(['helper.' t2fis.input(i).mf(1,abs(rules(n,i))).type '(x(i),UpperParams(1:end-1))']);
+                %MemberLower = LowerParams(end)*eval(['helper.' t2fis.input(i).mf(2,abs(rules(n,i))).type '(x(i),LowerParams(1:end-1))']);
+                MemberUpper = UpperParams(end)*helper.evalMfTypeHelper(t2fis.input(i).mf(1,abs(rules(n,i))).type,x(i),UpperParams(1:end-1));
                 MemberLower = LowerParams(end)*eval(['helper.' t2fis.input(i).mf(2,abs(rules(n,i))).type '(x(i),LowerParams(1:end-1))']);
                 if MemberUpper==0
                     MemberUpper=1;

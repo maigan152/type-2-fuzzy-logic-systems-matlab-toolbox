@@ -51,12 +51,18 @@ if diffRange1<=0 || diffRange2<=0
     warndlg('Please check your range for inputs','Wrong Range Input')
     return
 end
+if length(t2fis.input)~=2
+    warndlg('View surface function is working only for 2 inputs and 1 output systems.')
+    return
+end
+
 Input1=RangeInp1(1):(diffRange1/plotpoints):RangeInp1(2);
 Input2=RangeInp2(1):(diffRange2/plotpoints):RangeInp2(2);
 
 [Input1M,Input2M]=meshgrid(Input1,Input2);
 
-% zz=cell(numel(y),numel(x));
+
+
 try
     for i=1:numel(Input2)
         for j=1:numel(Input1)
