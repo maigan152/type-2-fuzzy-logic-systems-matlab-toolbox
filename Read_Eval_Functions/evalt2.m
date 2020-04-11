@@ -11,6 +11,7 @@
 %     You should have received a copy of the GNU General Public License
 %     along with IT2-FLS Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 function y = evalt2 (input,t2fis,TRMethod)
+% ZMO  : First "patch" of evalt2 to enable (only) 2 output instead of 1
 if nargin==0
     prompt={'T2FIS file:','Inputs:'};
     name='EvalT2';
@@ -104,15 +105,14 @@ end
 % tic;
 
 rules = cat(1,t2fis.rule.antecedent);
-
 N = size(rules);
 NofRule = N(1);
 nInput = length(t2fis.input);
 [inputN, ~] = size(input);
-y = zeros(inputN,1);
+y = zeros(inputN,2); % ZMO : fix for 2 output ( first argument)
 for inputSeq = 1:inputN
-    F = zeros(NofRule,2);
-    C = zeros(NofRule,1);
+    F = zeros(NofRule,2); 
+    C = zeros(2, NofRule,1); % ZMO : fix for 2 output ( first argument)
     x = input(inputSeq,:);
     %% ruleN = rule sayisi
     for n=1:NofRule
@@ -130,6 +130,9 @@ for inputSeq = 1:inputN
                 %MemberLower = LowerParams(end)*eval(['helper.' t2fis.input(i).mf(2,rules(n,i)).type '(x(i),LowerParams(1:end-1))']);
                 f1U=f1U*MemberUpper;
                 f1L=f1L*MemberLower;
+            elseif  rules(n,i) == 0 % ZMO : fix "none" case
+                f1U=f1U*1;
+                f1L=f1L*1;
             else
                 UpperParams = t2fis.input(i).mf(1,abs(rules(n,i))).params;
                 LowerParams = t2fis.input(i).mf(2,abs(rules(n,i))).params;
@@ -153,24 +156,33 @@ for inputSeq = 1:inputN
         end
 
         F(n,:) = [f1L,f1U];
+        save('F','F');
+        [out1 , out2] = t2fis.output.mf; % ZMO  : Fix for 2 output
+        for outIter=1:2
+            if outIter==1 % ZMO  : Fix for 2 output
+                outputMF=out1;
+            else
+                outputMF=out2;
+            end
+            consequent=t2fis.rule(n).consequent(outIter);
+            outputType = outputMF(consequent).type;
+            if strcmpi(outputType,'constant')
+                outMFPar = outputMF(consequent).params;
+                %     C(n,:) = [x 1]*[outMFPar(1) outMFPar(1) outMFPar(1)]';
+                C(outIter,n,:) = outMFPar(1);  % ZMO : Fix ":" by 1 ?
+                C(outIter,n,2) = outMFPar(2);
+            elseif strcmpi(outputType,'linear')
+                outMFPar = outputMF(consequent).params;
+                outMFParUpper =  outMFPar(1,1:nInput);
+                C(outIter,n,:)=outMFParUpper*input'+outMFPar(1,nInput+1); 
 
-        outputType = t2fis.output.mf(t2fis.rule(n).consequent).type;
-        if strcmpi(outputType,'constant')
-            outMFPar = t2fis.output.mf(t2fis.rule(n).consequent).params;
-            %     C(n,:) = [x 1]*[outMFPar(1) outMFPar(1) outMFPar(1)]';
-            C(n,:) = outMFPar(1);
-            C(n,2) = outMFPar(2);
-        elseif strcmpi(outputType,'linear')
-            outMFPar = t2fis.output.mf(t2fis.rule(n).consequent).params;
-            outMFParUpper =  outMFPar(1,1:nInput);
-            C(n,:)=outMFParUpper*input'+outMFPar(1,nInput+1);
+                outMFParLower =  outMFPar(1,end/2+1:end-1);
+                C(outIter,n,2)=outMFParLower*input'+outMFPar(1,end);
 
-            outMFParLower =  outMFPar(1,end/2+1:end-1);
-            C(n,2)=outMFParLower*input'+outMFPar(1,end);
-
+            end
         end
     end
-
+    save('C','C')
     %% Read KM method from t2fis file
 
     switch TRMethod
@@ -198,14 +210,17 @@ for inputSeq = 1:inputN
 
 
     %% Calculate Output
-    if strncmp(TRMethod,'BMM',3)
-        alfa=str2num(TRMethod(5:regexp(TRMethod,',')-1));
-        beta=str2num(TRMethod(regexp(TRMethod,',')+1:end-1));
-        [yL,yR,L,R] = feval(TRMethodfunc,F,C);
-    else
-        %       TRMethodfunc='t2f_TR_EIASC';
-        [yL,yR,L,R] = feval(TRMethodfunc,F,C);
+    for i=1:2 % fixme for multiple output
+        J(:,:) = C(i,:,:);
+        if strncmp(TRMethod,'BMM',3)
+            alfa=str2num(TRMethod(5:regexp(TRMethod,',')-1));
+            beta=str2num(TRMethod(regexp(TRMethod,',')+1:end-1));
+            [yL,yR,L,R] = feval(TRMethodfunc,F,J); % fixme for multiple output
+        else
+            %       TRMethodfunc='t2f_TR_EIASC';
+            [yL,yR,L,R] = feval(TRMethodfunc,F,J);
+        end
+        y(inputSeq,i)=(yL+yR)/2;
     end
-    y(inputSeq,1)=(yL+yR)/2;
 end
 % elapsedTime=toc;
